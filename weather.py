@@ -1,58 +1,91 @@
 import streamlit as st
+import altair as alt
 import requests
 import json 
 import time
+import pandas as pd
 
 st.title("Weather App") # Displays title
 
+#%% Test live updating
+
+st.subheader("Experimenting with Displaying Live Data") # Displays subheader
+
+from collections import deque
+from datetime import datetime
+
+if 'my_values' not in st.session_state:
+    st.session_state.my_values = deque(maxlen=30)
+    st.session_state.my_labels = deque(maxlen=30)
+
+if not st.session_state.my_values:
+  now = round(time.time() % 1000)
+  st.session_state.my_values.append(0)
+  st.session_state.my_labels.append(now)
+
+
+
+
+import random
+
+# values cannot be used in st.session_state!!
+# if 'my_values' not in st.session_state:
+#     st.session_state.my_values = list()
+
+# if not st.session_state.my_values:
+#   st.session_state.my_values.append(0)
+
+placeholder = st.empty()
+
+
 #%% Arduino Device API
 
-st.subheader("Exploring Arduino IoT Cloud Endpoints") # Displays subheader
+# st.subheader("Exploring Arduino IoT Cloud Endpoints") # Displays subheader
 
-import os
-import iot_api_client as iot
-from oauthlib.oauth2 import BackendApplicationClient
-from requests_oauthlib import OAuth2Session
+# import os
+# import iot_api_client as iot
+# from oauthlib.oauth2 import BackendApplicationClient
+# from requests_oauthlib import OAuth2Session
 
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-THING_ID = 'e12224f1-8238-4060-bcbf-7c3d5f672576'  # Pixel 6a
-PROPERTY_ID = 'a304b73f-b234-4683-a4c6-612e11cc771a'  # Linear accelerometer
+# CLIENT_ID = os.getenv("CLIENT_ID")
+# CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+# THING_ID = 'e12224f1-8238-4060-bcbf-7c3d5f672576'  # Pixel 6a
+# PROPERTY_ID = 'a304b73f-b234-4683-a4c6-612e11cc771a'  # Linear accelerometer
 
 
-oauth_client = BackendApplicationClient(client_id=CLIENT_ID)
-token_url = "https://api2.arduino.cc/iot/v1/clients/token"
-oauth = OAuth2Session(client=oauth_client)
+# oauth_client = BackendApplicationClient(client_id=CLIENT_ID)
+# token_url = "https://api2.arduino.cc/iot/v1/clients/token"
+# oauth = OAuth2Session(client=oauth_client)
 
-token = oauth.fetch_token(
-    token_url=token_url,
-    client_id=CLIENT_ID,
-    client_secret=CLIENT_SECRET,
-    include_client_id=True,
-    audience="https://api2.arduino.cc/iot",
-)
+# token = oauth.fetch_token(
+#     token_url=token_url,
+#     client_id=CLIENT_ID,
+#     client_secret=CLIENT_SECRET,
+#     include_client_id=True,
+#     audience="https://api2.arduino.cc/iot",
+# )
 
-client_config = iot.Configuration(host="https://api2.arduino.cc/iot")
-client_config.access_token = token.get("access_token")
-client = iot.ApiClient(client_config)
+# client_config = iot.Configuration(host="https://api2.arduino.cc/iot")
+# client_config.access_token = token.get("access_token")
+# client = iot.ApiClient(client_config)
 
-# Read values from a property of a device
-properties = iot.PropertiesV2Api(client)
+# # Read values from a property of a device
+# properties = iot.PropertiesV2Api(client)
 
-data = []
-for n in range(50):
+# data = []
+# for n in range(50):
 
-    try:
-        resp = properties.properties_v2_show(THING_ID, PROPERTY_ID)
-        data.append(resp.last_value)
+#     try:
+#         resp = properties.properties_v2_show(THING_ID, PROPERTY_ID)
+#         data.append(resp.last_value)
 
-    except Exception as e:
-        print("Exception when calling PropertiesV2Api->propertiesV2Show: %s\n" % e)
-        data.append(0)
+#     except Exception as e:
+#         print("Exception when calling PropertiesV2Api->propertiesV2Show: %s\n" % e)
+#         data.append(0)
 
-    time.sleep(0.2)
+#     time.sleep(0.2)
 
-st.line_chart(data=data)
+# st.line_chart(data=data)
 
 
 
@@ -141,3 +174,27 @@ footer = '''
     '''
 
 st.markdown(footer, unsafe_allow_html=True)
+
+## Update data
+
+while True:
+    # It is important to exit the context of the placeholder in each step of the loop
+    with placeholder.container():
+        now = round(time.time() % 1000)
+        new_value = st.session_state.my_values[-1] + random.randrange(-100, 100) / 100
+        st.session_state.my_values.append(new_value)
+        st.session_state.my_labels.append(now)
+        time.sleep(1)
+
+        data = pd.DataFrame({
+            'Time': list(st.session_state.my_labels), 
+            'Value': list(st.session_state.my_values),
+        })
+        chart = alt.Chart(data).mark_line().encode(
+            x = alt.X('Time', scale=alt.Scale(domain=[data['Time'].min(), data['Time'].max()])),
+            y = alt.Y('Value'),
+        )
+
+        st.altair_chart(chart, theme="streamlit", use_container_width=True)
+
+        # st.line_chart(dict(zip( list(st.session_state.my_labels), list(st.session_state.my_values) )))
