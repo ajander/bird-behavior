@@ -2,18 +2,13 @@
 #include <WiFiClientSecure.h>   // Source: https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFiClientSecure.h (comes from <ESP8266WiFi.h>)
 #include <PubSubClient.h>       // Source: https://pubsubclient.knolleary.net/
 #include <ArduinoJson.h>        // Source: https://github.com/bblanchon/ArduinoJson
-//#include "WiFi.h"
 #include "secrets.h"
 
-// defines pins numbers
 const int trigPin = 14;
 const int echoPin = 12;
 
-// defines variables
 long duration;
 int distance;
-unsigned long lastMillis = 0;
-//uint32_t t1;
 
 #define AWS_IOT_PUBLISH_TOPIC   "feather/pub"
 
@@ -32,21 +27,18 @@ PubSubClient mqtt_client(wifi_client);
 
 void connectAWS()
 {
-  // Begin WiFi in station mode
   WiFi.mode(WIFI_STA); 
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.println("Connecting to Wi-Fi");
 
-  // Wait for WiFi connection
   while (WiFi.status() != WL_CONNECTED){
     delay(500);
     Serial.print(".");
   }
   Serial.println();
 
-  // Set time to allow for certificate validation
-  Serial.print("Setting time using SNTP");
+  Serial.print("Setting time using SNTP");     // needed for certificate validation
   configTime(MY_TZ, MY_NTP_SERVER);
   Serial.println();
 
@@ -56,7 +48,6 @@ void connectAWS()
   wifi_client.setClientRSACert(&client_crt, &key);
   mqtt_client.setServer(MQTT_HOST, 8883);
 
-  // Wait for connection to AWS IoT
   while (!mqtt_client.connect(THINGNAME)) {
     delay(500);
     Serial.print(".");
@@ -79,12 +70,13 @@ void publishMessage()
   doc["time"] = millis();
   doc["distance"] = distance;
   char jsonBuffer[512];
-  serializeJson(doc, jsonBuffer); // print to client
+  serializeJson(doc, jsonBuffer);
  
   mqtt_client.publish(AWS_IOT_PUBLISH_TOPIC, jsonBuffer);
 }
 
 void setup() {
+  delay(3000)
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
   Serial.begin(115200);
@@ -104,7 +96,6 @@ void loop() {
 
   Serial.print("Distance: ");
   Serial.println(distance);
-  //delay(1000);
 
   publishMessage();
 
@@ -118,29 +109,3 @@ void loop() {
   }
   delay(1000);
 }
-
-
-
-// const int testPin = 0;
-// const int delayTime = 1000;
-
-// void setup() {
-//   Serial.begin(115200);
-//   Serial.println("Starting setup");
-//   Serial.println();
-//   pinMode(testPin, OUTPUT);
-//   Serial.println("Set pin 0 mode to output");
-//   Serial.println();
-// }
-
-// void loop() {
-//   Serial.println("Set pin high");
-//   Serial.println();
-//   digitalWrite(testPin, HIGH);
-//   delay(delayTime);
-//   Serial.println("Set pin low");
-//   Serial.println();
-//   digitalWrite(testPin, LOW);
-//   delay(delayTime);
-// }
-
