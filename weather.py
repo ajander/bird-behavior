@@ -104,26 +104,26 @@ if submit_button:
     else:
 
         result = response.text
-        data = json.loads(result)
+        weather_data = json.loads(result)
 
         col1, col2 = st.columns(2)
 
         with col1:
 
-            st.write(f'Name: {data["location"]["name"]}')
-            st.write(f'Region: {data["location"]["region"]}')
-            st.write(f'Country: {data["location"]["country"]}')
-            st.write(f'Local Time: {data["location"]["localtime"]}')
-            st.metric(label="wind_kph", value= f'{data["current"]["wind_kph"]}')
-            st.write(f'Feels like: {data["current"]["feelslike_c"]} ℃')
+            st.write(f'Name: {weather_data["location"]["name"]}')
+            st.write(f'Region: {weather_data["location"]["region"]}')
+            st.write(f'Country: {weather_data["location"]["country"]}')
+            st.write(f'Local Time: {weather_data["location"]["localtime"]}')
+            st.metric(label="wind_kph", value= f'{weather_data["current"]["wind_kph"]}')
+            st.write(f'Feels like: {weather_data["current"]["feelslike_c"]} ℃')
 
         with col2: 
 
-            st.write(f'Temp in Celcius: {data["current"]["temp_c"]}')
-            st.write(f'Temp in Farenheit: {data["current"]["temp_f"]}')
-            st.write(f'Condition: {data["current"]["condition"]["text"]}')
-            st.image(f'http:{data["current"]["condition"]["icon"]}')
-            st.metric(label = "Humidity", value = f'{data["current"]["humidity"]}')
+            st.write(f'Temp in Celcius: {weather_data["current"]["temp_c"]}')
+            st.write(f'Temp in Farenheit: {weather_data["current"]["temp_f"]}')
+            st.write(f'Condition: {weather_data["current"]["condition"]["text"]}')
+            st.image(f'http:{weather_data["current"]["condition"]["icon"]}')
+            st.metric(label = "Humidity", value = f'{weather_data["current"]["humidity"]}')
 
         st.info('⛅ Current weather or realtime weather API method allows a user to get up-to-date current weather information in json and xml. The data is returned as a Current Object.')
 
@@ -189,12 +189,12 @@ if submit_button:
             now = round(time.time() % 1000)
             st.session_state.my_labels.append(now)
             
-            data = pd.DataFrame({
+            device_data = pd.DataFrame({
                 'Time': list(st.session_state.my_labels), 
                 'Value': list(st.session_state.my_values),
             })
-            chart = alt.Chart(data).mark_line().encode(
-                x = alt.X('Time', scale=alt.Scale(domain=[data['Time'].min(), data['Time'].max()])),
+            chart = alt.Chart(device_data).mark_line().encode(
+                x = alt.X('Time', scale=alt.Scale(domain=[device_data['Time'].min(), device_data['Time'].max()])),
                 y = alt.Y('Value'),
             )
 
