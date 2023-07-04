@@ -2,15 +2,18 @@
 #include <WiFiClientSecure.h>   // Source: https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/WiFiClientSecure.h (comes from <ESP8266WiFi.h>)
 #include <PubSubClient.h>       // Source: https://pubsubclient.knolleary.net/
 #include <ArduinoJson.h>        // Source: https://github.com/bblanchon/ArduinoJson
+#include "HX711.h"              // Source: https://github.com/bogde/HX711
 #include "secrets.h"
 
-const int trigPin = 14;
-const int echoPin = 12;
+#define calibration_factor 244
+#define DAT  14
+#define CLK  12
 
-long duration;
-int distance;
+float weight;
 
-#define AWS_IOT_PUBLISH_TOPIC   "feather/pub"
+HX711 scale;
+
+#define AWS_IOT_PUBLISH_TOPIC   "$aws/rules/LoadCellData"
 
 // Configuration of NTP
 // See https://werner.rothschopf.net/202011_arduino_esp8266_ntp_en.htm
@@ -68,7 +71,7 @@ void publishMessage()
   //See https://arduinojson.org/
   StaticJsonDocument<200> doc;
   doc["time"] = millis();
-  doc["distance"] = distance;
+  doc["weight"] = weight;
   char jsonBuffer[512];
   serializeJson(doc, jsonBuffer);
  
@@ -76,26 +79,23 @@ void publishMessage()
 }
 
 void setup() {
-  delay(3000)
-  pinMode(trigPin, OUTPUT);
-  pinMode(echoPin, INPUT);
+
+  delay(3000);
   Serial.begin(115200);
   connectAWS();
+
+  scale.begin(DAT, CLK);
+  scale.set_scale(calibration_factor);
+  scale.tare();
+  Serial.println("Readings:");
 }
 
 void loop() {
 
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);        // trigger on trigPin
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-
-  duration = pulseIn(echoPin, HIGH);  // read echoPin
-  distance = duration * 0.034 / 2;
-
-  Serial.print("Distance: ");
-  Serial.println(distance);
+  weight = round(scale.get_units());    // scale.get_units() returns a float
+  Serial.print(weight);
+  Serial.print(" g");
+  Serial.println();
 
   publishMessage();
 
