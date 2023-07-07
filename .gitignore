@@ -1,6 +1,9 @@
 # Arduino
 secrets.h
 
+# Streamlit
+secrets.toml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
